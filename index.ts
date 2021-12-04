@@ -1,60 +1,39 @@
 // Import stylesheets
 import './style.css';
-import { Subject, interval, map, take, tap, Observer } from 'rxjs';
+import {
+  Subject,
+  interval,
+  map,
+  take,
+  tap,
+  Observer,
+  firstValueFrom,
+} from 'rxjs';
 import { fromFetch } from 'rxjs/fetch';
 import { switchMap } from 'rxjs/operators';
 
-// const subject = new Subject();
+const userUrl = 'https://api.github.com/users/six-edge';
 
-// console.log(`subject is ${subject.closed ? 'closed' : 'open'}`);
-
-// const subscriptionA = subject.subscribe({
-//   next: (v) => console.log(`observerA`, v),
-//   error: (err) => console.error(`observerA err`, err),
-//   complete: (v) => console.log(`observerA complete`),
-// } as Observer<string>);
-
-// const subscriptionB = subject.subscribe({
-//   next: (v) => console.log('observerB', v),
-//   error: (err) => console.error(`observerB err`, err),
-//   complete: (v) => console.log(`observerB complete`),
-// } as Observer<string>);
-
-// const keepAlive$ = interval(2000).pipe(
-//   map((count) => ({ message: 'KeepAlive', count })),
-//   tap(({ count }) => {
-//     if (count === 2) {
-//       subject.next({ Message: 'Ping' });
-//     }
-//   }),
-//   take(3)
-// );
-
-// // Subscribe providing a Subject
-// // When subscribed to KeepAlive it starts to emit values
-// // which uses next() to send values to the Subject
-// // enabling KeepAlive to be a data source
-// keepAlive$.subscribe(subject);
-
-// subject.next({ Message: 'Init' });
-
-// console.log('subscribers', subject.observed ? 'yes' : 'no');
-
-const repoObservable = fromFetch(
-  'https://api.github.com/users/six-edge/repos',
-  {
-    selector: (response) => response.json(),
-  }
-);
+const toJson = {
+  selector: (response) => response.json(),
+};
 
 // Chaining fromPromise
-const reposObservable = fromFetch(
-  'https://api.github.com/users/six-edge/repos',
-  {
-    selector: (response) => response.json(),
-  }
-).pipe(switchMap((data) => repoObservable));
 
-reposObservable.subscribe({
-  next: (val) => console.log('subscriber', val),
-});
+async function start() {
+  const repos$ = ({ repos_url }) => fromFetch(repos_url, toJson);
+
+  const user$ = fromFetch(userUrl, toJson).pipe(switchMap(repos$));
+
+  user$.subscribe({
+    next: (data) => {
+      console.log('first repo', data[0].name);
+    },
+  });
+
+  // const promise = firstValueFrom(user$);
+  // const data = await promise;
+  // console.log('promise', data[0].name);
+}
+
+start();
