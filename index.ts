@@ -15,28 +15,22 @@ import { fromFetch } from 'rxjs/fetch';
 import { switchMap } from 'rxjs/operators';
 
 const userUrl = 'https://api.github.com/users/six-edge';
-
+const toJson = { selector: (response) => response.json() };
 const authenticated = false;
 
-const toJson = {
-  selector: (response) => response.json(),
-};
-
-// Chaining fromPromise
-
-// 1. Insert observable after API tasks depending on condition
-// 2. Call a function to create a new observable, then subscribe.
-
+/**
+ * Chains observables together based on a condition
+ */
 function sendMessage$(msg: string): Observable<string> {
-  const source$ = of(msg);
+  const message$ = of(msg);
 
   if (authenticated) {
-    return source$;
+    return message$;
   } else {
     const repos$ = ({ repos_url }) =>
       fromFetch(repos_url, toJson).pipe(
         tap(() => console.log('got repos')),
-        switchMap(() => source$)
+        switchMap(() => message$)
       );
 
     const user$ = fromFetch(userUrl, toJson).pipe(
@@ -47,13 +41,16 @@ function sendMessage$(msg: string): Observable<string> {
   }
 }
 
+/**
+ * Entry Point
+ */
 async function start() {
   const observable = sendMessage$('send request');
 
   const subscription = observable.subscribe({
-    next: (data) => {
-      console.log('subscribe', data);
-    },
+    next: (data) => console.log(data),
+    complete: () => console.log('done'),
+    error: (err) => console.error('catch', err),
   });
 
   // const data = await firstValueFrom(observable);
